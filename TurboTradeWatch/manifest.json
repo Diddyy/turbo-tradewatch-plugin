@@ -1,0 +1,10 @@
+{
+    "Name": "Turbo Trade Watch",
+    "Key": "tradewatch",
+    "Version": "1.0.0",
+    "Author": "Diddyy",
+    "AssemblyFile": "TurboTradeWatch.dll",
+    "Dependencies": [],
+    "TablePrefix": "tradewatch_",
+    "ApiVersion": 1
+}
