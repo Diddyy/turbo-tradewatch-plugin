@@ -701,7 +701,7 @@ public sealed class TradeWatchAdmin(
                 id = Rules.NEW_ACCOUNT,
                 title = Rules.Title(Rules.NEW_ACCOUNT),
                 enabled = s.NewAccount.Enabled,
-                thresholds = $"an account younger than {s.NewAccount.MaxAgeDays} days receiving {Valuer.Credits(s.NewAccount.MinValue)} or more at once",
+                thresholds = $"an account younger than {s.NewAccount.MaxAgeDays} days getting {Valuer.Credits(s.NewAccount.MinValue)} or more of value at once, net of what it gave",
                 section = NewAccountConfig.SECTION_NAME,
             },
             new

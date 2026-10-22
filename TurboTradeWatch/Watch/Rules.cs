@@ -138,7 +138,7 @@ public sealed class Rules(IWatchHotel hotel)
 
         foreach (var received in read.Transfers.GroupBy(x => x.To))
         {
-            var value = received.Sum(x => x.Value);
+            var value = received.Sum(x => Net(read, x));
 
             if (received.Key <= 0 || value < Math.Max(1, config.MinValue))
                 continue;
@@ -166,13 +166,13 @@ public sealed class Rules(IWatchHotel hotel)
                         received.Key,
                         givers,
                         value,
-                        $"{N(names, received.Key)}, an account {Age(age)} old, received {Valuer.Credits(value)} of value from {string.Join(", ", givers.Select(x => N(names, x)))}",
+                        $"{N(names, received.Key)}, an account {Age(age)} old, got {Valuer.Credits(value)} of value from {string.Join(", ", givers.Select(x => N(names, x)))}, net of what it gave",
                         [
                             .. received.Select(x =>
                                 $"From {N(names, x.From)} ({x.Kind}): {x.Summary} = {Valuer.Credits(x.Value)}{Unvalued(x)}"
                             ),
                             $"Account made {created:yyyy-MM-dd HH:mm} UTC.",
-                            $"Rule: an account younger than {config.MaxAgeDays} days receiving {Valuer.Credits(config.MinValue)} or more at once.",
+                            $"Rule: an account younger than {config.MaxAgeDays} days getting {Valuer.Credits(config.MinValue)} or more of value at once, net of what it gave.",
                         ],
                         [read.OperationId],
                         read.OccurredAt,

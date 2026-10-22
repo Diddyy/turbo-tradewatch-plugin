@@ -186,8 +186,11 @@ public class NewAccountTests
         var flag = Assert.Single(host.Flags());
         Assert.Equal(Rules.NEW_ACCOUNT, flag.Rule);
         Assert.Equal(3, flag.PlayerId);
-        Assert.Equal(2500, flag.Value);
-        Assert.StartsWith("Carol, an account 20 h old, received 2,500 credits", flag.Summary);
+        Assert.Equal(2450, flag.Value);
+        Assert.Equal(
+            "Carol, an account 20 h old, got 2,450 credits of value from Bob, net of what it gave",
+            flag.Summary
+        );
     }
 
     [Fact]
@@ -199,6 +202,18 @@ public class NewAccountTests
 
         host.Trade(2, 3, Items((host.NewItem(), DIAMOND)), []);
         host.Trade(4, 5, Items((host.NewItem(), GOLDBAR)), []);
+        await host.DeliverAsync();
+
+        Assert.Empty(host.Flags());
+    }
+
+    [Fact]
+    public async Task AYoungAccountTradingFairly_IsNotFlagged()
+    {
+        using var host = new TestHost();
+        host.Hotel.Created[3] = host.Now.AddHours(-2);
+
+        host.Trade(2, 3, Items((host.NewItem(), DIAMOND)), Items((host.NewItem(), DIAMOND)));
         await host.DeliverAsync();
 
         Assert.Empty(host.Flags());
