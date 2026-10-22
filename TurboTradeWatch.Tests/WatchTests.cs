@@ -215,6 +215,10 @@ public class AdminTests
         Assert.Contains("CF_diamond_2500 (item", timeline);
         Assert.Contains("\"value\":2500", timeline);
 
+        var evidence = Admin.Json(await admin.CallAsync("GET flags/{id}/evidence", id));
+        Assert.Contains("\"total\":3", evidence);
+        Assert.Contains("Bob gave: 2 x CF_diamond_2500 = 5,000 credits", evidence);
+
         var players = Admin.Json(await admin.CallAsync("GET flags/{id}/players", id));
         Assert.Contains("Carol (3)", players);
         Assert.Contains("Bob (2)", players);

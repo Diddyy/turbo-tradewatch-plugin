@@ -66,6 +66,7 @@ public sealed class TradeWatchAdmin(
         admin.Map("GET", "stats", view, (_, ct) => StatsAsync(ct));
         admin.Map("GET", "flags", view, FlagsAsync);
         admin.Map("GET", "flags/{id}", view, FlagAsync);
+        admin.Map("GET", "flags/{id}/evidence", view, FlagEvidenceAsync);
         admin.Map("GET", "flags/{id}/movements", view, FlagMovementsAsync);
         admin.Map("GET", "flags/{id}/players", view, FlagPlayersAsync);
         admin.Map("POST", "flags/{id}", manage, HandleAsync);
@@ -144,7 +145,6 @@ public sealed class TradeWatchAdmin(
                             new("playerPage", "Player page"),
                             new("others", "With"),
                             new("value", "Value (credits)", "number"),
-                            new("evidence", "Evidence"),
                             new("status", "Status", "badge"),
                             new("note", "Note"),
                             new("handledBy", "Handled by"),
@@ -153,6 +153,12 @@ public sealed class TradeWatchAdmin(
                             new("lastSeenAt", "Last movement", "time"),
                             new("createdAt", "Flagged", "time"),
                         ]
+                    ),
+                    new PluginAdminBlock(
+                        "table",
+                        Title: "Evidence",
+                        Endpoint: "flags/{id}/evidence",
+                        Columns: [new("line", "What the rule saw")]
                     ),
                     new PluginAdminBlock(
                         "form",
@@ -427,13 +433,7 @@ public sealed class TradeWatchAdmin(
                     new { label = "Open flags", value = open },
                     new { label = "Flagged (7 days)", value = flagged },
                     new { label = "Exchanges read (7 days)", value = exchanges },
-                    new
-                    {
-                        label = "Read up to",
-                        value = cursor is null
-                            ? "nothing yet"
-                            : $"outbox {cursor.LastId} at {cursor.UpdatedAt:yyyy-MM-dd HH:mm} UTC",
-                    },
+                    new { label = "Read up to (outbox id)", value = cursor?.LastId ?? 0 },
                     new { label = "Missed (pruned before read)", value = cursor?.Missed ?? 0 },
                 }
             );
@@ -530,7 +530,6 @@ public sealed class TradeWatchAdmin(
                         ? "-"
                         : string.Join(", ", others.Select(o => $"{Name(names, o)} ({o})")),
                     value = x.Value,
-                    evidence = x.Evidence,
                     status = x.Status,
                     note = x.Note ?? "",
                     handledBy = x.HandledById is { } by ? Name(names, by) : "-",
@@ -538,6 +537,27 @@ public sealed class TradeWatchAdmin(
                     occurredAt = x.OccurredAt,
                     lastSeenAt = x.LastSeenAt,
                     createdAt = x.CreatedAt,
+                }
+            );
+        });
+
+    private Task<PluginAdminResult> FlagEvidenceAsync(
+        PluginAdminRequest request,
+        CancellationToken ct
+    ) =>
+        WithDbAsync(async db =>
+        {
+            if (await FindFlagAsync(db, request, ct).ConfigureAwait(false) is not { } flag)
+                return PluginAdminResult.NotFound("No such flag.");
+
+            var lines = flag.Evidence.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+            return PluginAdminResult.Ok(
+                new
+                {
+                    items = lines.Select((line, i) => new { id = i + 1, line }),
+                    total = lines.Length,
+                    pageSize = Math.Max(lines.Length, PAGE_SIZE),
                 }
             );
         });
