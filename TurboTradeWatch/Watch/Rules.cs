@@ -199,19 +199,19 @@ public sealed class Rules(IWatchHotel hotel)
         var made = new List<FlagEntity>();
         var min = Math.Max(1, config.MinValue);
 
+        // What one account got for nothing: a fair trade or a sale at its value feeds no one.
         foreach (
             var receiver in read
-                .Transfers.Where(x => x.Value >= min && x.To > 0)
+                .Transfers.Where(x => x.To > 0 && Net(read, x) >= min)
                 .Select(x => x.To)
                 .Distinct()
         )
         {
             var since = read.OccurredAt.AddHours(-Math.Max(1, config.WindowHours));
-            var received = await db
+            var all = await db
                 .Transfers.AsNoTracking()
                 .Where(x =>
                     x.ToPlayerId == receiver
-                    && x.Value >= min
                     && x.OccurredAt >= since
                     && x.OccurredAt <= read.OccurredAt
                     && x.FromPlayerId != receiver
@@ -219,21 +219,37 @@ public sealed class Rules(IWatchHotel hotel)
                 .OrderBy(x => x.OccurredAt)
                 .ToListAsync(ct)
                 .ConfigureAwait(false);
+            var ops = all.Select(x => x.OperationId).Distinct().ToList();
+            var back = (
+                await db
+                    .Transfers.AsNoTracking()
+                    .Where(x => x.FromPlayerId == receiver && ops.Contains(x.OperationId))
+                    .ToListAsync(ct)
+                    .ConfigureAwait(false)
+            )
+                .GroupBy(x => (x.OperationId, x.ToPlayerId))
+                .ToDictionary(x => x.Key, x => x.Sum(t => t.Value));
+            var received = all.Where(x =>
+                    x.Value - back.GetValueOrDefault((x.OperationId, x.FromPlayerId)) >= min
+                )
+                .ToList();
             var senders = received.Select(x => x.FromPlayerId).Distinct().ToList();
 
             if (senders.Count < Math.Max(2, config.MinSenders))
                 continue;
 
-            var value = received.Sum(x => x.Value);
+            var value = received.Sum(x =>
+                x.Value - back.GetValueOrDefault((x.OperationId, x.FromPlayerId))
+            );
             var names = await hotel.NamesAsync([receiver, .. senders], ct).ConfigureAwait(false);
             var summary =
                 $"{N(names, receiver)} received {Valuer.Credits(value)} of value from {senders.Count} accounts in {config.WindowHours} h";
             List<string> evidence =
             [
                 .. received.Select(x =>
-                    $"{x.OccurredAt:yyyy-MM-dd HH:mm} from {N(names, x.FromPlayerId)} ({x.Kind}): {x.Summary} = {Valuer.Credits(x.Value)}"
+                    $"{x.OccurredAt:yyyy-MM-dd HH:mm} from {N(names, x.FromPlayerId)} ({x.Kind}): {x.Summary} = {Valuer.Credits(x.Value)}{Back(back.GetValueOrDefault((x.OperationId, x.FromPlayerId)))}"
                 ),
-                $"Rule: {config.MinSenders} or more accounts giving {Valuer.Credits(min)} or more each within {config.WindowHours} h.",
+                $"Rule: {config.MinSenders} or more accounts giving {Valuer.Credits(min)} or more each, net of what they got back, within {config.WindowHours} h.",
             ];
             var operations = received.Select(x => x.OperationId).Distinct().ToList();
 
@@ -452,6 +468,13 @@ public sealed class Rules(IWatchHotel hotel)
 
         return flag;
     }
+
+    /// <summary>What <paramref name="t"/> was worth less what its receiver gave its giver back in the same operation.</summary>
+    private static long Net(OperationRead read, Transfer t) =>
+        t.Value - read.Transfers.Where(x => x.From == t.To && x.To == t.From).Sum(x => x.Value);
+
+    private static string Back(long value) =>
+        value > 0 ? $" (got {Valuer.Credits(value)} back)" : "";
 
     private static string N(IReadOnlyDictionary<int, string> names, int id) =>
         names.TryGetValue(id, out var name) ? name : $"#{id}";

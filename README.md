@@ -53,7 +53,7 @@ has no value is worth the credits paid for it. Every flag says how many items it
 | --- | --- | --- |
 | Lopsided trade (`Lopsided`) | A trade or marketplace sale where one side is worth `MinValue` or more and the other `MaxReturnPercent` of it or less. Flagged on who gained. | `MinValue` 5,000, `MaxReturnPercent` 10, `UnvaluedIsFair` on (an unvalued item on the poorer side may be a rare not in the table, so the trade is taken as fair), `Marketplace` on |
 | New account receives (`NewAccount`) | An account younger than `MaxAgeDays` receiving `MinValue` or more in one trade, gift or sale. | `MaxAgeDays` 3, `MinValue` 2,000 |
-| Funnel (`Funnel`) | `MinSenders` or more accounts each giving one account `MinValue` or more within `WindowHours`. One flag while it goes on: later senders add to it. | `MinSenders` 5, `WindowHours` 24, `MinValue` 500 |
+| Funnel (`Funnel`) | `MinSenders` or more accounts each giving one account `MinValue` or more within `WindowHours`, net of what they got back in the same trade or sale (a fair trade or a sale at its value feeds no one). One flag while it goes on: later senders add to it. | `MinSenders` 5, `WindowHours` 24, `MinValue` 500 |
 | Rapid flips (`RapidFlips`) | One item held by `MinAccounts` or more accounts (the first owner included) within `WindowMinutes`. One flag while it goes on. | `MinAccounts` 4, `WindowMinutes` 60, `ValuedOnly` on |
 
 Windows are measured in when the movements happened, so a backlog read late flags what a live

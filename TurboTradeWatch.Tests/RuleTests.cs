@@ -259,6 +259,24 @@ public class FunnelTests
     }
 
     [Fact]
+    public async Task FairExchanges_FeedNoOne()
+    {
+        using var host = new TestHost();
+        host.Change(db => db.Values.Add(new ValueEntity { DefinitionId = DRAGON, Credits = 600 }));
+
+        // A seller of five dragons at their value to five buyers, and five fair trades into one account.
+        foreach (var buyer in new[] { 2, 3, 4, 5, 6 })
+        {
+            host.Sale(buyer, seller: 9, host.NewItem(), DRAGON, 600, offer: 100 + buyer);
+            host.Trade(buyer, 8, host.Goldbars(10), Items((host.NewItem(), DRAGON)));
+        }
+
+        await host.DeliverAsync();
+
+        Assert.Empty(host.Flags());
+    }
+
+    [Fact]
     public async Task SendersOutsideTheWindow_OrUnderTheValue_DoNotCount()
     {
         using var host = new TestHost();
