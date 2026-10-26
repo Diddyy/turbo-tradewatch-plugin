@@ -26,7 +26,7 @@ public sealed class Notices(IWatchHotel hotel, ILogger<Notices> logger)
     public const string SOURCE = "tradewatch";
     public const string FLAG_NEW = "flag.new";
 
-    /// <summary>The host's <c>EventSystem.PublishAsync</c> while the plugin runs; null: nothing is published.</summary>
+    /// <summary>The host's <c>IEventPublisher.PublishAsync</c> while the plugin runs; null: nothing is published.</summary>
     public Func<PluginNoticeEvent, CancellationToken, Task>? Publisher { get; set; }
 
     public async Task FlagAsync(FlagEntity flag, CancellationToken ct)

@@ -11,7 +11,7 @@ using Turbo.Contracts.Plugins;
 using Turbo.Contracts.Plugins.Admin;
 using Turbo.Contracts.Plugins.Exports;
 using Turbo.Database.Extensions;
-using Turbo.Events;
+using Turbo.Primitives.Events;
 using Turbo.Primitives.Furniture.Providers;
 using Turbo.Primitives.Movements;
 using TurboTradeWatch.Database;
@@ -71,7 +71,7 @@ public sealed class TradeWatchPlugin : ITurboPlugin
     public Task StartAsync(IServiceProvider services, CancellationToken ct)
     {
         _notices = services.GetRequiredService<Notices>();
-        _notices.Publisher = Host<EventSystem>(services).PublishAsync;
+        _notices.Publisher = Host<IEventPublisher>(services).PublishAsync;
         _registry = Host<IAssetMovementConsumerRegistry>(services);
         _consumer = services.GetRequiredService<WatchConsumer>();
 
